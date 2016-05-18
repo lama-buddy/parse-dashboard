@@ -43,70 +43,70 @@ let configUserId = program.userId || process.env.PARSE_DASHBOARD_USER_ID;
 let configUserPassword = program.userPassword || process.env.PARSE_DASHBOARD_USER_PASSWORD;
 let configSSLKey = program.sslKey || process.env.PARSE_DASHBOARD_SSL_KEY;
 let configSSLCert = program.sslCert || process.env.PARSE_DASHBOARD_SSL_CERT;
-if (!program.config && !process.env.PARSE_DASHBOARD_CONFIG) {
-  if (configServerURL && configMasterKey && configAppId) {
-    configFromCLI = {
-      data: {
-        apps: [
-          {
-            appId: configAppId,
-            serverURL: configServerURL,
-            masterKey: configMasterKey,
-            appName: configAppName,
-          },
-        ]
-      }
-    };
-    if (configUserId && configUserPassword) {
-      configFromCLI.data.users = [
-        {
-          user: configUserId,
-          pass: configUserPassword,
-        }
-      ];
-    }
-  } else if (!configServerURL && !configMasterKey && !configAppName) {
-    configFile = path.join(__dirname, 'parse-dashboard-config.json');
-  }
-} else if (!program.config && process.env.PARSE_DASHBOARD_CONFIG) {
-  configFromCLI = {
-    data: JSON.parse(process.env.PARSE_DASHBOARD_CONFIG)
-  };
-} else {
-  configFile = program.config;
-  if (program.appId || program.serverURL || program.masterKey || program.appName) {
-    console.log('You must provide either a config file or required CLI options (app ID, Master Key, and server URL); not both.');
-    process.exit(3);
-  }
-}
-
-let p = null;
-let configFilePath = null;
-if (configFile) {
-  p = jsonFile(configFile);
-  configFilePath = path.dirname(configFile);
-} else if (configFromCLI) {
-  p = Promise.resolve(configFromCLI);
-} else {
-  //Failed to load default config file.
-  console.log('You must provide either a config file or an app ID, Master Key, and server URL. See parse-dashboard --help for details.');
-  process.exit(4);
-}
-p.then(config => {
-  config.data.apps.forEach(app => {
-    if (!app.appName) {
-      app.appName = app.appId;
-    }
-  });
-
-  if (config.data.iconsFolder && configFilePath) {
-    config.data.iconsFolder = path.join(configFilePath, config.data.iconsFolder);
-  }
-
+// if (!program.config && !process.env.PARSE_DASHBOARD_CONFIG) {
+//   if (configServerURL && configMasterKey && configAppId) {
+//     configFromCLI = {
+//       data: {
+//         apps: [
+//           {
+//             appId: configAppId,
+//             serverURL: configServerURL,
+//             masterKey: configMasterKey,
+//             appName: configAppName,
+//           },
+//         ]
+//       }
+//     };
+//     if (configUserId && configUserPassword) {
+//       configFromCLI.data.users = [
+//         {
+//           user: configUserId,
+//           pass: configUserPassword,
+//         }
+//       ];
+//     }
+//   } else if (!configServerURL && !configMasterKey && !configAppName) {
+//     configFile = path.join(__dirname, 'parse-dashboard-config.json');
+//   }
+// } else if (!program.config && process.env.PARSE_DASHBOARD_CONFIG) {
+//   configFromCLI = {
+//     data: JSON.parse(process.env.PARSE_DASHBOARD_CONFIG)
+//   };
+// } else {
+//   configFile = program.config;
+//   if (program.appId || program.serverURL || program.masterKey || program.appName) {
+//     console.log('You must provide either a config file or required CLI options (app ID, Master Key, and server URL); not both.');
+//     process.exit(3);
+//   }
+// }
+//
+// let p = null;
+// let configFilePath = null;
+// if (configFile) {
+//   p = jsonFile(configFile);
+//   configFilePath = path.dirname(configFile);
+// } else if (configFromCLI) {
+//   p = Promise.resolve(configFromCLI);
+// } else {
+//   //Failed to load default config file.
+//   console.log('You must provide either a config file or an app ID, Master Key, and server URL. See parse-dashboard --help for details.');
+//   process.exit(4);
+// }
+// p.then(config => {
+//   config.data.apps.forEach(app => {
+//     if (!app.appName) {
+//       app.appName = app.appId;
+//     }
+//   });
+//
+//   if (config.data.iconsFolder && configFilePath) {
+//     config.data.iconsFolder = path.join(configFilePath, config.data.iconsFolder);
+//   }
   const app = express();
 
   if (allowInsecureHTTP) app.enable('trust proxy');
-  app.use(mountPath, parseDashboard(config.data, allowInsecureHTTP));
+
+  app.use(mountPath, parseDashboard(allowInsecureHTTP));
   if(!configSSLKey || !configSSLCert){
     // Start the server.
     const server = app.listen(port, host, function () {
@@ -117,7 +117,7 @@ p.then(config => {
     var fs = require('fs');
     var privateKey = fs.readFileSync(configSSLKey);
     var certificate = fs.readFileSync(configSSLCert);
-   
+
     const server = require('https').createServer({
       key: privateKey,
       cert: certificate
@@ -125,24 +125,24 @@ p.then(config => {
       console.log(`The dashboard is now available at https://${server.address().address}:${server.address().port}${mountPath}`);
     });
   }
-}, error => {
-  if (error instanceof SyntaxError) {
-    console.log('Your config file contains invalid JSON. Exiting.');
-    process.exit(1);
-  } else if (error.code === 'ENOENT') {
-    if (explicitConfigFileProvided) {
-      console.log('Your config file is missing. Exiting.');
-      process.exit(2);
-    } else {
-      console.log('You must provide either a config file or required CLI options (app ID, Master Key, and server URL); not both.');
-      process.exit(3);
-    }
-  } else {
-    console.log('There was a problem with your config. Exiting.');
-    process.exit(-1);
-  }
-})
-.catch(error => {
-  console.log('There was a problem loading the dashboard. Exiting.');
-  process.exit(-1);
-});
+// }, error => {
+//   if (error instanceof SyntaxError) {
+//     console.log('Your config file contains invalid JSON. Exiting.');
+//     process.exit(1);
+//   } else if (error.code === 'ENOENT') {
+//     if (explicitConfigFileProvided) {
+//       console.log('Your config file is missing. Exiting.');
+//       process.exit(2);
+//     } else {
+//       console.log('You must provide either a config file or required CLI options (app ID, Master Key, and server URL); not both.');
+//       process.exit(3);
+//     }
+//   } else {
+//     console.log('There was a problem with your config. Exiting.');
+//     process.exit(-1);
+//   }
+// })
+// .catch(error => {
+//   console.log('There was a problem loading the dashboard. Exiting.');
+//   process.exit(-1);
+//});
